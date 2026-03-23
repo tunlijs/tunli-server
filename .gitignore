@@ -7,3 +7,4 @@ dist-sea/
 conf.d/.env.json
 coverage/
 todo.txt
+dev/

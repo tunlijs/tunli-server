@@ -45,6 +45,11 @@ export const validateConfig = (config: unknown): string[] => {
     const ss = c.socketServer as Record<string, unknown>
     checkString('socketServer.capturePath', ss.capturePath)
     checkString('socketServer.publicUrl', ss.publicUrl)
+    if (ss.connectionPoolSize !== undefined) {
+      if (typeof ss.connectionPoolSize !== 'number' || !Number.isInteger(ss.connectionPoolSize) || ss.connectionPoolSize < 1) {
+        errors.push('socketServer.connectionPoolSize: must be a positive integer')
+      }
+    }
   }
   checkServerConfig('proxyServer', c.proxyServer)
   if (typeof c.proxyServer === 'object' && c.proxyServer !== null) {

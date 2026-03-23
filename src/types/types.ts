@@ -8,6 +8,7 @@ export type ApiConfig = ServerConfig
 export type SocketServerConfig = ServerConfig & {
   capturePath: string
   publicUrl: string
+  connectionPoolSize?: number
 }
 
 export type ProxyServerConfig = ServerConfig & {

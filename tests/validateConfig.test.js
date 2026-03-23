@@ -65,6 +65,34 @@ test('server false is valid (router disabled)', () => {
   assert.deepEqual(validateConfig(c), [])
 })
 
+test('connectionPoolSize omitted is valid', () => {
+  assert.deepEqual(validateConfig(validConfig()), [])
+})
+
+test('connectionPoolSize valid positive integer', () => {
+  const c = validConfig()
+  c.socketServer.connectionPoolSize = 8
+  assert.deepEqual(validateConfig(c), [])
+})
+
+test('connectionPoolSize zero returns error', () => {
+  const c = validConfig()
+  c.socketServer.connectionPoolSize = 0
+  assert.ok(validateConfig(c).some(e => e.includes('connectionPoolSize')))
+})
+
+test('connectionPoolSize float returns error', () => {
+  const c = validConfig()
+  c.socketServer.connectionPoolSize = 2.5
+  assert.ok(validateConfig(c).some(e => e.includes('connectionPoolSize')))
+})
+
+test('connectionPoolSize string returns error', () => {
+  const c = validConfig()
+  c.socketServer.connectionPoolSize = '8'
+  assert.ok(validateConfig(c).some(e => e.includes('connectionPoolSize')))
+})
+
 test('multiple errors are all reported', () => {
   const c = validConfig()
   c.apiServer.port = 0
