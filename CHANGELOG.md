@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.0] - 2026-03-24
+
+### Added
+- **Share relay** — new `/share` Socket.IO namespace enabling private peer-to-peer tunnels (`tunli share` / `tunli connect`). The relay brokers binary data between host and client without inspection.
+- `share-register` / `share-connect` — host registers with a public key, client connects by target public key
+- `share-session-start` — signals the host to open its local TCP connection only when the client's TCP peer is ready (prevents premature connection failures)
+- Bob's public key forwarded in `share-client` event for future allowlist support (Phase 2)
+
+---
+
 ## [0.2.0] - 2026-03-23
 
 ### Added

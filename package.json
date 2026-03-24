@@ -1,6 +1,6 @@
 {
   "name": "tunli-server",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Self-hosted reverse tunnel server — exposes local services to the public internet via unique subdomains",
   "license": "AGPL-3.0-only",
   "repository": {
