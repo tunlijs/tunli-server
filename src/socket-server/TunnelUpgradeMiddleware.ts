@@ -3,6 +3,7 @@ import {tunnelSocketRegistry} from '#lib/TunnelSocketRegistry'
 import {createTunnelRequest} from '#http/TunnelRequest'
 import {createSocketHttpHeader, getReqHeaders} from '#utils/httpFunctions'
 import type {UpgradeHandler} from "#types/types";
+import {ipV4} from "@pfeiferio/ipv4"
 
 interface TunnelResponseMeta {
   statusCode: number
@@ -24,6 +25,27 @@ export const createTunnelUpgradeMiddleware = (): UpgradeHandler => {
     if (!tunnelSocket) {
       socket.end('HTTP/1.1 404 Not Found\r\n\r\n')
       return
+    }
+
+    const cidrRules = tunnelSocketRegistry.getCidrRules(tunnelId)
+    if (cidrRules) {
+      const rawIp = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim()
+        ?? req.socket.remoteAddress
+        ?? ''
+
+      let clientIp: ReturnType<typeof ipV4> | null = null
+      try {
+        clientIp = ipV4(rawIp)
+      } catch { /* unparseable (e.g. IPv6) */
+      }
+
+      if (clientIp === null
+        || cidrRules.denyCidr.some(net => net.contains(clientIp))
+        || (cidrRules.allowCidr.length > 0 && !cidrRules.allowCidr.some(net => net.contains(clientIp)))) {
+        tunnelSocket.emit('client-blocked', rawIp ?? 'unknown')
+        socket.end('HTTP/1.1 403 Forbidden\r\n\r\n')
+        return
+      }
     }
 
     const tunnelRequest = createTunnelRequest(tunnelSocket, {

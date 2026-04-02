@@ -49,6 +49,7 @@
   "dependencies": {
     "@pfeiferio/custom-base": "^1.0.1",
     "@pfeiferio/express-middlewares": "^1.11.0",
+    "@pfeiferio/ipv4": "^1.1.0",
     "@pfeiferio/konfi": "^1.0.0",
     "@pfeiferio/object-utils": "^1.1.1",
     "@pfeiferio/string-interpolate": "^1.0.0",

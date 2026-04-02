@@ -9,6 +9,7 @@ import {
   rewriteLocation,
   rewriteSetCookieDomain
 } from "#utils/httpFunctions";
+import {ipV4} from "@pfeiferio/ipv4"
 
 interface TunnelResponseMeta {
   statusCode: number
@@ -30,6 +31,28 @@ router.all('/_internal/forward', (req, res) => {
   if (!tunnelSocket) {
     res.status(404).end('No tunnel available')
     return
+  }
+
+  const cidrRules = tunnelSocketRegistry.getCidrRules(tunnelId)
+
+  if (cidrRules) {
+    const rawIp = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim()
+      ?? req.socket.remoteAddress
+      ?? ''
+
+    let clientIp: ReturnType<typeof ipV4> | null = null
+    try {
+      clientIp = ipV4(rawIp)
+    } catch { /* unparseable (e.g. IPv6) */
+    }
+
+    if (clientIp === null
+      || cidrRules.denyCidr.some(net => net.contains(clientIp))
+      || (cidrRules.allowCidr.length > 0 && !cidrRules.allowCidr.some(net => net.contains(clientIp)))) {
+      tunnelSocket.emit('client-blocked', rawIp ?? 'unknown')
+      res.status(403).end('Forbidden')
+      return
+    }
   }
 
   const tunnelRequest = createTunnelRequest(tunnelSocket, {

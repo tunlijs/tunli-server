@@ -1,4 +1,5 @@
 import type {Socket} from "socket.io"
+import {IPv4Network} from "@pfeiferio/ipv4";
 
 export interface PickStrategy {
   pick(sockets: Socket[]): Socket | null
@@ -41,8 +42,11 @@ class SocketPool {
   }
 }
 
+export type CidrRules = { allowCidr: IPv4Network[]; denyCidr: IPv4Network[] }
+
 class TunnelSocketRegistry {
   readonly #pools = new Map<string, SocketPool>()
+  readonly #cidrRules = new Map<string, CidrRules>()
 
   add(tunnelId: string, socket: Socket): void {
     if (!this.#pools.has(tunnelId)) {
@@ -55,7 +59,10 @@ class TunnelSocketRegistry {
     const pool = this.#pools.get(tunnelId)
     if (!pool) return
     pool.remove(socket)
-    if (pool.size === 0) this.#pools.delete(tunnelId)
+    if (pool.size === 0) {
+      this.#pools.delete(tunnelId)
+      this.#cidrRules.delete(tunnelId)
+    }
   }
 
   has(tunnelId: string): boolean {
@@ -69,6 +76,14 @@ class TunnelSocketRegistry {
 
   poolSize(tunnelId: string): number {
     return this.#pools.get(tunnelId)?.size ?? 0
+  }
+
+  setCidrRules(tunnelId: string, rules: CidrRules): void {
+    this.#cidrRules.set(tunnelId, rules)
+  }
+
+  getCidrRules(tunnelId: string): CidrRules | undefined {
+    return this.#cidrRules.get(tunnelId)
   }
 }
 
