@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import type {LoggerInterface} from "@tunli/daemon";
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
@@ -11,7 +12,7 @@ export class Logger {
   readonly #label: string
   readonly #stdout: boolean
 
-  constructor(filePath: string | null, options?: {minLevel?: LogLevel, label?: string, stdout?: boolean}) {
+  constructor(filePath: string | null, options?: { minLevel?: LogLevel, label?: string, stdout?: boolean }) {
     if (filePath) {
       fs.mkdirSync(path.dirname(filePath), {recursive: true})
       this.#stream = fs.createWriteStream(filePath, {flags: 'a'})
@@ -33,17 +34,28 @@ export class Logger {
     if (this.#stdout) process.stdout.write(line)
   }
 
-  debug(...args: unknown[]): void { this.#write('debug', args) }
-  info(...args: unknown[]): void  { this.#write('info', args) }
-  warn(...args: unknown[]): void  { this.#write('warn', args) }
-  error(...args: unknown[]): void { this.#write('error', args) }
+  debug(...args: unknown[]): void {
+    this.#write('debug', args)
+  }
+
+  info(...args: unknown[]): void {
+    this.#write('info', args)
+  }
+
+  warn(...args: unknown[]): void {
+    this.#write('warn', args)
+  }
+
+  error(...args: unknown[]): void {
+    this.#write('error', args)
+  }
 
   child(label: string): ChildLogger {
     return new ChildLogger(this, label)
   }
 }
 
-export class ChildLogger {
+export class ChildLogger implements LoggerInterface {
   readonly #parent: Logger
   readonly #label: string
 
@@ -52,8 +64,23 @@ export class ChildLogger {
     this.#label = label
   }
 
-  debug(...args: unknown[]): void { this.#parent.debug(`[${this.#label}]`, ...args) }
-  info(...args: unknown[]): void  { this.#parent.info(`[${this.#label}]`, ...args) }
-  warn(...args: unknown[]): void  { this.#parent.warn(`[${this.#label}]`, ...args) }
-  error(...args: unknown[]): void { this.#parent.error(`[${this.#label}]`, ...args) }
+  debug(...args: unknown[]): void {
+    this.#parent.debug(`[${this.#label}]`, ...args)
+  }
+
+  info(...args: unknown[]): void {
+    this.#parent.info(`[${this.#label}]`, ...args)
+  }
+
+  warn(...args: unknown[]): void {
+    this.#parent.warn(`[${this.#label}]`, ...args)
+  }
+
+  error(...args: unknown[]): void {
+    this.#parent.error(`[${this.#label}]`, ...args)
+  }
+
+  verbose(...args: unknown[]): void {
+    this.#parent.error(`[${this.#label}]`, ...args)
+  }
 }

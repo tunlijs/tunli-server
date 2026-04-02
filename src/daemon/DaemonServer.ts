@@ -1,10 +1,9 @@
-import net from 'net'
 import {type ChildProcess, spawn} from 'child_process'
-import {unlinkSync} from 'fs'
 import {isSea} from 'node:sea'
 import {SERVER_DAEMON_SOCKET_PATH} from '#lib/defs'
 import type {DaemonRequest, DaemonResponse, ProcessName, ProcessStatus} from '#daemon/protocol'
 import type {ChildLogger} from '#lib/Logger'
+import {DaemonServer as DaemonServerExt} from '@tunli/daemon'
 
 export type ServerScripts = Partial<Record<ProcessName, string>>
 
@@ -15,73 +14,55 @@ type ManagedProcess = {
   status: ProcessStatus
 }
 
+interface DaemonEventMap extends Record<string, Array<unknown>> {
+  "status": [req: DaemonRequest]
+  "shutdown": [req: DaemonRequest]
+}
+
 export class DaemonServer {
-  readonly #logger: ChildLogger
   readonly #processes: Map<ProcessName, ManagedProcess> = new Map()
-  #server?: net.Server
-  #shuttingDown = false
+  readonly #daemonServer = new DaemonServerExt<DaemonRequest, DaemonResponse, DaemonEventMap>(SERVER_DAEMON_SOCKET_PATH)
 
   constructor(scripts: ServerScripts, logger: ChildLogger) {
-    this.#logger = logger
+    this.#daemonServer.logger = logger
     for (const [name, script] of Object.entries(scripts) as [ProcessName, string][]) {
       this.#processes.set(name, {name, script, child: null, status: 'stopped'})
     }
   }
 
   async listen(): Promise<void> {
-    try {
-      unlinkSync(SERVER_DAEMON_SOCKET_PATH)
-    } catch { /* stale socket */
-    }
 
-    this.#server = net.createServer((socket) => {
-      let buffer = ''
-      socket.on('data', (chunk) => {
-        buffer += chunk.toString()
-        const nl = buffer.indexOf('\n')
-        if (nl === -1) return
-        const line = buffer.slice(0, nl)
-        buffer = buffer.slice(nl + 1)
-        try {
-          this.#handle(JSON.parse(line) as DaemonRequest, socket)
-        } catch {
-          this.#respond(socket, {type: 'error', message: 'Invalid request'})
-        }
+    this.#daemonServer.createServer((_req, socket) => {
+      socket.write({type: 'error', message: 'Invalid request'})
+    })
+
+    this.#daemonServer.on('status', (_req, socket) => {
+      socket.write({
+        type: 'status',
+        processes: Object.fromEntries(
+          [...this.#processes.entries()].map(([name, p]) => [name, p.status])
+        ) as Record<ProcessName, ProcessStatus>,
       })
     })
 
-    await new Promise<void>((resolve) => this.#server!.listen(SERVER_DAEMON_SOCKET_PATH, resolve))
-    this.#logger.info('Daemon listening')
+    this.#daemonServer.on('shutdown', (_req, socket) => {
+      socket.write({type: 'ok'})
+      this.#shutdown()
+    })
+
+    await this.#daemonServer.listen()
 
     for (const proc of this.#processes.values()) {
       this.#spawn(proc)
     }
 
-    process.on('SIGTERM', () => this.#shutdown())
-    process.on('SIGINT', () => this.#shutdown())
-  }
-
-  #handle(req: DaemonRequest, socket: net.Socket): void {
-    switch (req.type) {
-      case 'status':
-        this.#respond(socket, {
-          type: 'status',
-          processes: Object.fromEntries(
-            [...this.#processes.entries()].map(([name, p]) => [name, p.status])
-          ) as Record<ProcessName, ProcessStatus>,
-        })
-        break
-      case 'shutdown':
-        this.#respond(socket, {type: 'ok'})
-        this.#shutdown()
-        break
-    }
+    this.#daemonServer.onShutdown(() => this.#shutdown())
   }
 
   #spawn(proc: ManagedProcess): void {
-    if (this.#shuttingDown) return
+    if (this.#daemonServer.shuttingDown) return
     proc.status = 'starting'
-    this.#logger.info(`Starting ${proc.name}`)
+    this.#daemonServer.logger.info(`Starting ${proc.name}`)
 
     let child: ChildProcess
     if (isSea()) {
@@ -98,41 +79,32 @@ export class DaemonServer {
     }
     proc.child = child
 
-    child.stdout?.on('data', (chunk: Buffer) => this.#logger.info(`[${proc.name}] ${chunk.toString().trimEnd()}`))
-    child.stderr?.on('data', (chunk: Buffer) => this.#logger.error(`[${proc.name}] ${chunk.toString().trimEnd()}`))
+    child.stdout?.on('data', (chunk: Buffer) => this.#daemonServer.logger.info(`[${proc.name}] ${chunk.toString().trimEnd()}`))
+    child.stderr?.on('data', (chunk: Buffer) => this.#daemonServer.logger.error(`[${proc.name}] ${chunk.toString().trimEnd()}`))
 
     child.once('spawn', () => {
       proc.status = 'running'
-      this.#logger.info(`${proc.name} running (pid ${child.pid})`)
+      this.#daemonServer.logger.info(`${proc.name} running (pid ${child.pid})`)
     })
 
     child.once('exit', (code) => {
-      if (this.#shuttingDown) {
+      if (this.#daemonServer.shuttingDown) {
         proc.status = 'stopped'
         return
       }
       proc.status = 'crashed'
-      this.#logger.warn(`${proc.name} exited with code ${code}, restarting in 1s`)
+      this.#daemonServer.logger.warn(`${proc.name} exited with code ${code}, restarting in 1s`)
       setTimeout(() => this.#spawn(proc), 1000)
     })
   }
 
-  #respond(socket: net.Socket, response: DaemonResponse): void {
-    socket.write(JSON.stringify(response) + '\n')
-  }
-
   #shutdown(): void {
-    if (this.#shuttingDown) return
-    this.#shuttingDown = true
-    this.#logger.info('Daemon shutting down')
     for (const proc of this.#processes.values()) {
       proc.child?.kill('SIGTERM')
     }
-    this.#server?.close()
-    try {
-      unlinkSync(SERVER_DAEMON_SOCKET_PATH)
-    } catch { /* already gone */
-    }
+
+    this.#daemonServer.shutdown()
+
     process.exit(0)
   }
 }

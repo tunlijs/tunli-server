@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- `DaemonClient` and `DaemonServer` extracted into the shared `@tunli/daemon` package — daemon socket protocol, process lifecycle, and spawn logic are no longer duplicated per project
+- `ChildLogger` now implements `LoggerInterface` from `@tunli/daemon`
+
+---
+
 ## [0.3.0] - 2026-03-24
 
 ### Added

@@ -52,6 +52,7 @@
     "@pfeiferio/konfi": "^1.0.0",
     "@pfeiferio/object-utils": "^1.1.1",
     "@pfeiferio/string-interpolate": "^1.0.0",
+    "@tunli/daemon": "^1.0.0",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "redis": "^5.11.0",
