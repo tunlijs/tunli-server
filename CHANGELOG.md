@@ -4,6 +4,7 @@
 
 ### Added
 - **CIDR-based IP filtering** — clients can pass `allowCidr` / `denyCidr` arrays on connect. Requests (HTTP and WebSocket upgrades) from IPs not matching the rules are blocked with 403. The tunnel socket receives a `client-blocked` event with the blocked IP.
+- `GET /api/v2/connect-info` now returns `serverVersion` and `minClientVersion` so clients can enforce compatibility checks before connecting
 
 ### Changed
 - `DaemonClient` and `DaemonServer` extracted into the shared `@tunli/daemon` package — daemon socket protocol, process lifecycle, and spawn logic are no longer duplicated per project

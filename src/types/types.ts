@@ -30,6 +30,7 @@ export type AppConfig = {
   proxyServer: ProxyServerConfig
   auth: {
     jwtSignatureSecret: string
+    minClientVersion?: string
   }
   redis?: { url: string } | false
 }
