@@ -2,7 +2,7 @@ import {daemonClient} from '#daemon/DaemonClient'
 import {loadAndAssertConfig} from '#lib/validateConfig'
 import {createReadStream, watchFile} from 'fs'
 import {join} from 'path'
-import {TUNLI_DIR} from '#lib/defs'
+import {SERVER_VERSION, TUNLI_DIR} from '#lib/defs'
 
 const command = process.argv[2]
 
@@ -45,7 +45,7 @@ switch (command) {
 
   case 'status': {
     if (!await daemonClient().isRunning()) {
-      console.log('Server: stopped')
+      console.log(`Server: stopped (v${SERVER_VERSION})`)
       process.exit(0)
     }
     const response = await daemonClient().send({type: 'status'})
@@ -53,10 +53,21 @@ switch (command) {
       console.error('Unexpected response from daemon')
       process.exit(1)
     }
-    console.log('Server: running')
+    // version is missing if the running daemon predates 0.4.1
+    const runningVersion = response.version
+    console.log(runningVersion === SERVER_VERSION
+      ? `Server: running (v${SERVER_VERSION})`
+      : `Server: running (v${runningVersion ?? 'unknown'}, installed v${SERVER_VERSION} — restart to update)`)
     for (const [name, status] of Object.entries(response.processes)) {
       console.log(`  ${name}: ${status}`)
     }
+    break
+  }
+
+  case 'version':
+  case '--version':
+  case '-v': {
+    console.log(SERVER_VERSION)
     break
   }
 
@@ -82,6 +93,6 @@ switch (command) {
   }
 
   default:
-    console.error('Usage: tunli-server <start|stop|restart|status|logs|checkconf>')
+    console.error('Usage: tunli-server <start|stop|restart|status|version|logs|checkconf>')
     process.exit(1)
 }

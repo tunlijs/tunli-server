@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1] - 2026-09-24
+
+### Added
+- `tunli-server version` (also `--version` / `-v`) prints the installed server version
+- `tunli-server status` shows the server version. The daemon reports its running version; if it differs from the installed version (e.g. after an update without restart), the output says so.
+
+---
+
 ## [0.4.0] - 2026-09-24
 
 ### Added

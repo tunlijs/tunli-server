@@ -1,6 +1,6 @@
 import {type ChildProcess, spawn} from 'child_process'
 import {isSea} from 'node:sea'
-import {SERVER_DAEMON_SOCKET_PATH} from '#lib/defs'
+import {SERVER_DAEMON_SOCKET_PATH, SERVER_VERSION} from '#lib/defs'
 import type {DaemonRequest, DaemonResponse, ProcessName, ProcessStatus} from '#daemon/protocol'
 import type {ChildLogger} from '#lib/Logger'
 import {DaemonServer as DaemonServerExt} from '@tunli/daemon'
@@ -39,6 +39,7 @@ export class DaemonServer {
     this.#daemonServer.on('status', (_req, socket) => {
       socket.write({
         type: 'status',
+        version: SERVER_VERSION,
         processes: Object.fromEntries(
           [...this.#processes.entries()].map(([name, p]) => [name, p.status])
         ) as Record<ProcessName, ProcessStatus>,
