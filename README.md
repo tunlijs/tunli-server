@@ -96,7 +96,8 @@ tunli-server checkconf
 tunli-server start     # Start the server daemon
 tunli-server stop      # Stop the server daemon
 tunli-server restart   # Restart the server daemon
-tunli-server status    # Show daemon and process status
+tunli-server status    # Show daemon, version and process status
+tunli-server version   # Print the installed server version
 tunli-server logs      # Tail the daemon log
 tunli-server checkconf # Validate the configuration
 ```

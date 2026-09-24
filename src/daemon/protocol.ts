@@ -6,6 +6,6 @@ export type DaemonRequest =
   | { type: 'shutdown' }
 
 export type DaemonResponse =
-  | { type: 'status'; processes: Record<ProcessName, ProcessStatus> }
+  | { type: 'status'; version?: string; processes: Record<ProcessName, ProcessStatus> }
   | { type: 'ok' }
   | { type: 'error'; message: string }
