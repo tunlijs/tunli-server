@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.4.0] - 2026-09-24
 
 ### Added
 - **CIDR-based IP filtering** — clients can pass `allowCidr` / `denyCidr` arrays on connect. Requests (HTTP and WebSocket upgrades) from IPs not matching the rules are blocked with 403. The tunnel socket receives a `client-blocked` event with the blocked IP.
