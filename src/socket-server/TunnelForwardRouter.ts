@@ -83,7 +83,7 @@ router.all('/_internal/forward', (req, res) => {
     const proto = extractProtocolFromRequest(req)
     // tbd Content-Security-Policy
     rewriteSetCookieDomain(headers, host)
-    rewriteLocation(headers, host, proto)
+    rewriteLocation(headers, host, proto, tunnelSocketRegistry.getTargetHost(tunnelId))
     rewriteAccessControlAllowOrigin(headers, host, proto)
     if (statusCode === 301) {
       headers['x-tunli-original-status'] = '301'

@@ -47,6 +47,7 @@ export type CidrRules = { allowCidr: IPv4Network[]; denyCidr: IPv4Network[] }
 class TunnelSocketRegistry {
   readonly #pools = new Map<string, SocketPool>()
   readonly #cidrRules = new Map<string, CidrRules>()
+  readonly #targetHosts = new Map<string, string>()
 
   add(tunnelId: string, socket: Socket): void {
     if (!this.#pools.has(tunnelId)) {
@@ -62,6 +63,7 @@ class TunnelSocketRegistry {
     if (pool.size === 0) {
       this.#pools.delete(tunnelId)
       this.#cidrRules.delete(tunnelId)
+      this.#targetHosts.delete(tunnelId)
     }
   }
 
@@ -84,6 +86,15 @@ class TunnelSocketRegistry {
 
   getCidrRules(tunnelId: string): CidrRules | undefined {
     return this.#cidrRules.get(tunnelId)
+  }
+
+  setTargetHost(tunnelId: string, targetHost: string | undefined): void {
+    if (targetHost) this.#targetHosts.set(tunnelId, targetHost)
+    else this.#targetHosts.delete(tunnelId)
+  }
+
+  getTargetHost(tunnelId: string): string | undefined {
+    return this.#targetHosts.get(tunnelId)
   }
 }
 

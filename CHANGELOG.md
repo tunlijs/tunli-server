@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.4.0] - 2026-09-24
 
 ### Added
 - **CIDR-based IP filtering** — clients can pass `allowCidr` / `denyCidr` arrays on connect. Requests (HTTP and WebSocket upgrades) from IPs not matching the rules are blocked with 403. The tunnel socket receives a `client-blocked` event with the blocked IP.
@@ -9,6 +9,9 @@
 ### Changed
 - `DaemonClient` and `DaemonServer` extracted into the shared `@tunli/daemon` package — daemon socket protocol, process lifecycle, and spawn logic are no longer duplicated per project
 - `ChildLogger` now implements `LoggerInterface` from `@tunli/daemon`
+
+### Fixed
+- `Location` headers are now only rewritten to the tunnel host when they point to the tunnel's local target. Redirects to foreign domains (e.g. `a.de` → `b.de`) are passed through unchanged. Clients announce their target via `targetHost` in the socket handshake `auth`; without it, the previous behaviour (always rewrite) is kept.
 
 ---
 
