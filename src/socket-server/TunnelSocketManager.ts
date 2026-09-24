@@ -4,6 +4,7 @@ import {socketLogger} from '#bootstrap'
 import {tunnelSocketRegistry} from "#lib/TunnelSocketRegistry";
 import jwt from "jsonwebtoken";
 import {normalizeCidrList} from "#utils/cidrFunctions";
+import {normalizeTargetHost} from "#utils/httpFunctions";
 
 export const attachTunnelSocketManager = (io: Server): void => {
   io.use(authMiddleware)
@@ -37,6 +38,7 @@ const onConnection = (socket: Socket): void => {
   const denyCidr = normalizeCidrList(auth.denyCidr)
 
   tunnelSocketRegistry.setCidrRules(host, {allowCidr, denyCidr})
+  tunnelSocketRegistry.setTargetHost(host, normalizeTargetHost(auth.targetHost))
 
   socketLogger.info(`connected ${host} (pool: ${tunnelSocketRegistry.poolSize(host)})`)
 

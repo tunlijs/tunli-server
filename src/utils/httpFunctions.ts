@@ -18,11 +18,31 @@ export const createSocketHttpHeader = (line: string, headers: Record<string, str
 
 const parseHost = (host: string) => new URL(`http://${host}`)
 
-export const rewriteLocation = (headers: IncomingHttpHeaders, host: string, proto: string): void => {
+/**
+ * Normalizes a client-supplied target host to a bare, lowercase hostname
+ * (no protocol, port or path). Returns undefined for invalid input.
+ */
+export const normalizeTargetHost = (val: unknown): string | undefined => {
+  if (typeof val !== 'string' || !val.trim()) return undefined
+  try {
+    const raw = val.trim()
+    return new URL(raw.includes('://') ? raw : `http://${raw}`).hostname.toLowerCase() || undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Rewrites an absolute Location header to the public tunnel host.
+ * If targetHost is known, only redirects pointing to the tunnel's local target
+ * are rewritten — redirects to foreign domains are left untouched.
+ */
+export const rewriteLocation = (headers: IncomingHttpHeaders, host: string, proto: string, targetHost?: string): void => {
   const value = headers['location']
   if (!value) return
   try {
     const url = new URL(value)
+    if (targetHost && url.hostname.toLowerCase() !== targetHost) return
     const parsed = parseHost(host)
     url.hostname = parsed.hostname
     url.port = parsed.port

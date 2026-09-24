@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   createSocketHttpHeader,
   rewriteLocation,
+  normalizeTargetHost,
   rewriteAccessControlAllowOrigin,
   rewriteSetCookieDomain,
 } from '../dist/utils/httpFunctions.js'
@@ -70,6 +71,47 @@ describe('rewriteLocation', () => {
     const headers = {'location': 'http://localhost:3000/path'}
     rewriteLocation(headers, 'abc.myserver.com:8443', 'https')
     assert.equal(headers['location'], 'https://abc.myserver.com:8443/path')
+  })
+
+  test('rewrites redirect to the local target host', () => {
+    const headers = {'location': 'https://a.de/foo'}
+    rewriteLocation(headers, 'abc.tunli.app', 'https', 'a.de')
+    assert.equal(headers['location'], 'https://abc.tunli.app/foo')
+  })
+
+  test('matches target host case-insensitively and ignores port', () => {
+    const headers = {'location': 'http://A.DE:8080/foo'}
+    rewriteLocation(headers, 'abc.tunli.app', 'https', 'a.de')
+    assert.equal(headers['location'], 'https://abc.tunli.app/foo')
+  })
+
+  test('does not rewrite redirect to a foreign host', () => {
+    const headers = {'location': 'https://b.de/foo'}
+    rewriteLocation(headers, 'abc.tunli.app', 'https', 'a.de')
+    assert.equal(headers['location'], 'https://b.de/foo')
+  })
+
+  test('does not rewrite redirect to a subdomain of the target host', () => {
+    const headers = {'location': 'https://login.a.de/'}
+    rewriteLocation(headers, 'abc.tunli.app', 'https', 'a.de')
+    assert.equal(headers['location'], 'https://login.a.de/')
+  })
+})
+
+describe('normalizeTargetHost', () => {
+  test('returns lowercase hostname', () => {
+    assert.equal(normalizeTargetHost('A.De'), 'a.de')
+  })
+
+  test('strips protocol, port and path', () => {
+    assert.equal(normalizeTargetHost('https://a.de:8443/foo'), 'a.de')
+    assert.equal(normalizeTargetHost('localhost:3000'), 'localhost')
+  })
+
+  test('returns undefined for invalid input', () => {
+    assert.equal(normalizeTargetHost(undefined), undefined)
+    assert.equal(normalizeTargetHost(''), undefined)
+    assert.equal(normalizeTargetHost(42), undefined)
   })
 })
 
