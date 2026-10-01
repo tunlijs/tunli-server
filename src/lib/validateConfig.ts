@@ -3,6 +3,7 @@ import {join} from 'path'
 import {isSea} from 'node:sea'
 import {loadConfig, config} from "#lib/Config";
 import {TUNLI_DIR} from "#lib/defs";
+import {resolveConfigPath} from "#utils/pathFunctions";
 
 export const validateConfig = (config: unknown): string[] => {
   const errors: string[] = []
@@ -87,6 +88,7 @@ export const assertConfig = (config: unknown): void => {
 }
 
 export const loadAndAssertConfig = (devConfDir: string): void => {
+  const confDir = isSea() ? TUNLI_DIR : devConfDir
   if (isSea()) {
     const configPath = join(TUNLI_DIR, 'server.json')
     if (!existsSync(configPath)) {
@@ -99,4 +101,5 @@ export const loadAndAssertConfig = (devConfDir: string): void => {
     loadConfig(devConfDir, ['.env.json'])
   }
   assertConfig(config)
+  config.log.file = resolveConfigPath(config.log.file, confDir)
 }

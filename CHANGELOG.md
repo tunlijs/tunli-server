@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.2] - 2026-10-01
+
+### Fixed
+- `tunli-server logs` crashed with `ENOENT` when the log file did not exist yet. It now creates the file if needed and keeps tailing it.
+- `tunli-server logs` always read `~/.tunli/server-daemon.log` and ignored `log.file`; it now reads the configured file.
+- `log.file` paths are now resolved: a leading `~` expands to the home directory and relative paths resolve against the config directory. Previously `"~/.tunli/server-daemon.log"` (as in the example config) was taken literally, so the daemon wrote into a directory named `~` below its working directory.
+
+---
+
 ## [0.4.1] - 2026-09-24
 
 ### Added
