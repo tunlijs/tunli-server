@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.5.0] - 2026-10-01
+
+### Added
+- **`tunli-server stats`** — shows what's happening on the server: users (distinct auth tokens), tunnels, socket connections, share sessions, requests (total, last minute, in flight), WebSockets, traffic in/out, CIDR blocks, tunnel errors, registrations, and per-process pid/uptime/memory. `--json` for scripts, `--watch` for a live view with the current request rate.
+- The daemon logs a one-line stats summary every 5 minutes.
+- Server processes are now spawned with an IPC channel; the daemon queries their stats over it (1s timeout per process, a process that doesn't answer is shown as "no data").
+
+### Fixed
+- Auth/invite tokens issued within the same second were identical (the JWT only contained `iat`), so concurrent registrations shared one identity — including subdomain ownership. Tokens now carry a random `jti`.
+
+### Notes
+- Counters are in-memory and reset when the respective process restarts.
+- `stats` needs a daemon from 0.5.0 — run `tunli-server restart` after updating.
+
+---
+
 ## [0.4.2] - 2026-10-01
 
 ### Fixed

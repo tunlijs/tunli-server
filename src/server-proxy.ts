@@ -6,6 +6,7 @@ import {createTunnelRequestMiddleware} from "#proxy-server/TunnelRequestMiddlewa
 import {resolveTunnelIdMiddleware} from "#proxy-server/resolveTunnelIdMiddleware";
 import {createTunnelUpgradeMiddleware} from "#proxy-server/TunnelUpgradeMiddleware";
 import {dropConnections} from "#middleware/utils";
+import {exposeStats} from "#stats/metrics";
 
 const tunnelIdSource = parseTunnelIdSource(config.proxyServer.urlTemplate)
 
@@ -20,5 +21,7 @@ const httpServer = app.listen(config.proxyServer.port, config.proxyServer.host, 
 })
 
 httpServer.on('upgrade', createTunnelUpgradeMiddleware(tunnelIdSource, config.socketServer))
+
+exposeStats()
 
 process.send?.('ready')

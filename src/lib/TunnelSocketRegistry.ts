@@ -76,6 +76,16 @@ class TunnelSocketRegistry {
     return this.#pools.get(tunnelId)?.pick() ?? null
   }
 
+  get tunnelCount(): number {
+    return this.#pools.size
+  }
+
+  get connectionCount(): number {
+    let sum = 0
+    for (const pool of this.#pools.values()) sum += pool.size
+    return sum
+  }
+
   poolSize(tunnelId: string): number {
     return this.#pools.get(tunnelId)?.size ?? 0
   }

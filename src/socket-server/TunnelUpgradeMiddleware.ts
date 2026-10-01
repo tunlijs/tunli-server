@@ -4,6 +4,7 @@ import {createTunnelRequest} from '#http/TunnelRequest'
 import {createSocketHttpHeader, getReqHeaders} from '#utils/httpFunctions'
 import type {UpgradeHandler} from "#types/types";
 import {ipV4} from "@pfeiferio/ipv4"
+import {dec, inc} from "#stats/metrics"
 
 interface TunnelResponseMeta {
   statusCode: number
@@ -43,6 +44,7 @@ export const createTunnelUpgradeMiddleware = (): UpgradeHandler => {
         || cidrRules.denyCidr.some(net => net.contains(clientIp))
         || (cidrRules.allowCidr.length > 0 && !cidrRules.allowCidr.some(net => net.contains(clientIp)))) {
         tunnelSocket.emit('client-blocked', rawIp ?? 'unknown')
+        inc('blockedCidr')
         socket.end('HTTP/1.1 403 Forbidden\r\n\r\n')
         return
       }
@@ -54,6 +56,11 @@ export const createTunnelUpgradeMiddleware = (): UpgradeHandler => {
       path: req.headers['x-tunnel-url'] as string ?? '/',
     })
     const tunnelResponse = tunnelRequest.res
+
+    inc('websocketsTotal')
+    inc('websocketsOpen')
+    if (head?.length) inc('bytesIn', head.length)
+    socket.on('data', (chunk: Buffer) => inc('bytesIn', chunk.length))
 
     if (head?.length) tunnelRequest.write(head)
     socket.pipe(tunnelRequest)
@@ -71,6 +78,8 @@ export const createTunnelUpgradeMiddleware = (): UpgradeHandler => {
           headers as Record<string, string | string[]>
         )
       )
+      // attach right before piping — an earlier 'data' listener would start the flow and drop chunks
+      tunnelResponse.on('data', (chunk: Buffer) => inc('bytesOut', chunk.length))
       tunnelResponse.pipe(socket)
     }
 
@@ -79,6 +88,7 @@ export const createTunnelUpgradeMiddleware = (): UpgradeHandler => {
 
     const onDisconnect = () => socket.end()
     const onSocketClose = () => {
+      dec('websocketsOpen')
       tunnelSocket.off('disconnect', onDisconnect)
       tunnelResponse.destroy()
     }

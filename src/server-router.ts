@@ -1,3 +1,4 @@
+import {exposeStats} from '#stats/metrics'
 import {createServer, request as httpRequest} from 'http'
 import {connect} from 'net'
 import {config} from '#lib/Config'
@@ -46,5 +47,7 @@ const {port, host} = config.server
 server.listen(port, host, () => {
   serverLogger.info(`Router listening on http://${host}:${port}`)
 })
+
+exposeStats()
 
 process.send?.('ready')

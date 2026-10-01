@@ -5,6 +5,7 @@ import {tunnelSocketRegistry} from "#lib/TunnelSocketRegistry";
 import jwt from "jsonwebtoken";
 import {normalizeCidrList} from "#utils/cidrFunctions";
 import {normalizeTargetHost} from "#utils/httpFunctions";
+import {connectedUsers} from "#stats/ConnectedUsers";
 
 export const attachTunnelSocketManager = (io: Server): void => {
   io.use(authMiddleware)
@@ -31,6 +32,7 @@ const onConnection = (socket: Socket): void => {
   const host = socket.handshake.headers['x-tunnel-id'] as string
 
   tunnelSocketRegistry.add(host, socket)
+  connectedUsers.track(socket)
 
   const auth = socket.handshake.auth as Record<string, unknown>
 

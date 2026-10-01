@@ -1,7 +1,7 @@
 import {resolve} from 'path'
 import {homedir} from 'os'
 
-export const SERVER_VERSION = '0.4.2'
+export const SERVER_VERSION = '0.5.0'
 
 export const DEF_TIME_YEAR_IN_SECONDS = 365 * 24 * 60 * 60
 
