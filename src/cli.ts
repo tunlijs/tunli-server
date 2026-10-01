@@ -1,8 +1,9 @@
 import {daemonClient} from '#daemon/DaemonClient'
 import {loadAndAssertConfig} from '#lib/validateConfig'
-import {createReadStream, watchFile} from 'fs'
-import {join} from 'path'
-import {SERVER_VERSION, TUNLI_DIR} from '#lib/defs'
+import {closeSync, createReadStream, mkdirSync, openSync, statSync, watchFile} from 'fs'
+import {dirname, join} from 'path'
+import {SERVER_VERSION} from '#lib/defs'
+import {config} from '#lib/Config'
 
 const command = process.argv[2]
 
@@ -78,17 +79,36 @@ switch (command) {
   }
 
   case 'logs': {
-    const logFile = join(TUNLI_DIR, 'server-daemon.log')
+    loadAndAssertConfig(join(import.meta.dirname, '../conf.d'))
+    const logFile = config.log.file
+    // the daemon may not have written anything yet — make sure the file exists
+    mkdirSync(dirname(logFile), {recursive: true})
+    closeSync(openSync(logFile, 'a'))
+
     let pos = 0
-    const readFrom = (start: number) => {
-      const s = createReadStream(logFile, {encoding: 'utf8', start})
-      s.pipe(process.stdout, {end: false})
-      s.on('end', () => {
-        pos += s.bytesRead
-      })
+    let reading = false
+    const readNew = () => {
+      if (reading) return
+      let size: number
+      try {
+        size = statSync(logFile).size
+      } catch {
+        return // file removed (e.g. rotation) — wait until it reappears
+      }
+      if (size < pos) pos = 0 // truncated
+      if (size === pos) return
+      reading = true
+      createReadStream(logFile, {encoding: 'utf8', start: pos, end: size - 1})
+        .on('data', (chunk) => process.stdout.write(chunk))
+        .on('error', (e) => console.error(`Failed to read ${logFile}: ${e.message}`))
+        .on('close', () => {
+          pos = size
+          reading = false
+          readNew()
+        })
     }
-    readFrom(0)
-    watchFile(logFile, {interval: 300}, () => readFrom(pos))
+    readNew()
+    watchFile(logFile, {interval: 300}, readNew)
     break
   }
 
