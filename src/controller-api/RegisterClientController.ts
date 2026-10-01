@@ -4,6 +4,7 @@ import {config} from "#lib/Config";
 import jwt from "jsonwebtoken";
 import {sha256} from "#utils/hashFunctions";
 import type {TokenStorage} from "#types/types";
+import {inc} from "#stats/metrics";
 
 export const registerClientController = (storageInterface: TokenStorage): RequestHandler => async (_req, res) => {
   const jwtToken = jwt.sign({
@@ -12,6 +13,7 @@ export const registerClientController = (storageInterface: TokenStorage): Reques
 
   await storageInterface.set(`token:${sha256(jwtToken)}`, true, DEF_TIME_YEAR_IN_SECONDS)
 
+  inc('registrations')
   res.json({
     authToken: jwtToken
   })

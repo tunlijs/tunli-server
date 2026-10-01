@@ -10,6 +10,7 @@ import {
   rewriteSetCookieDomain
 } from "#utils/httpFunctions";
 import {ipV4} from "@pfeiferio/ipv4"
+import {dec, inc, requestRate} from "#stats/metrics"
 
 interface TunnelResponseMeta {
   statusCode: number
@@ -50,6 +51,7 @@ router.all('/_internal/forward', (req, res) => {
       || cidrRules.denyCidr.some(net => net.contains(clientIp))
       || (cidrRules.allowCidr.length > 0 && !cidrRules.allowCidr.some(net => net.contains(clientIp)))) {
       tunnelSocket.emit('client-blocked', rawIp ?? 'unknown')
+      inc('blockedCidr')
       res.status(403).end('Forbidden')
       return
     }
@@ -61,6 +63,12 @@ router.all('/_internal/forward', (req, res) => {
     path: req.headers['x-tunnel-url'] as string ?? req.url,
   })
   const tunnelResponse = tunnelRequest.res
+
+  inc('requestsTotal')
+  inc('requestsInFlight')
+  requestRate.hit()
+  res.once('close', () => dec('requestsInFlight'))
+  req.on('data', (chunk: Buffer) => inc('bytesIn', chunk.length))
 
   req.pipe(tunnelRequest)
 
@@ -75,6 +83,7 @@ router.all('/_internal/forward', (req, res) => {
   const onRequestError = () => {
     tunnelResponse.off('response', onResponse)
     tunnelResponse.destroy()
+    inc('tunnelErrors')
     res.status(502).end('Request error')
   }
   const onResponse = ({statusCode, statusMessage, headers}: TunnelResponseMeta) => {
@@ -94,10 +103,12 @@ router.all('/_internal/forward', (req, res) => {
 
   tunnelResponse.once('requestError', onRequestError)
   tunnelResponse.once('response', onResponse)
+  tunnelResponse.on('data', (chunk: Buffer) => inc('bytesOut', chunk.length))
   tunnelResponse.pipe(res)
 
   const onSocketError = () => {
     res.off('close', onResClose)
+    inc('tunnelErrors')
     if (!res.writableEnded) res.status(500).end('Tunnel disconnected')
   }
   const onResClose = () => tunnelSocket.off('disconnect', onSocketError)

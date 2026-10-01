@@ -98,6 +98,7 @@ tunli-server stop      # Stop the server daemon
 tunli-server restart   # Restart the server daemon
 tunli-server status    # Show daemon, version and process status
 tunli-server version   # Print the installed server version
+tunli-server stats     # Show users, tunnels, requests and traffic (--json, --watch)
 tunli-server logs      # Tail the daemon log
 tunli-server checkconf # Validate the configuration
 ```

@@ -6,6 +6,7 @@ import {config} from "#lib/Config";
 import {initRedis, redis} from "#lib/Redis/Client";
 import {InMemoryStorage} from "#lib/InMemoryStorage";
 import type {TokenStorage} from "#types/types";
+import {exposeStats} from "#stats/metrics";
 
 const storage: TokenStorage = config.redis
   ? (initRedis({url: config.redis.url}), redis())
@@ -26,5 +27,7 @@ app.use(apiRouter(config, storage))
 app.listen(config.apiServer.port, config.apiServer.host, () => {
   apiLogger.info(`Listening on http://${config.apiServer.host}:${config.apiServer.port}`)
 })
+
+exposeStats()
 
 process.send?.('ready');

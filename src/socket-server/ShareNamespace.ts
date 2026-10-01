@@ -3,6 +3,7 @@ import type {Server, Socket} from 'socket.io'
 import {config} from '#lib/Config'
 import {socketLogger} from '#bootstrap'
 import jwt from 'jsonwebtoken'
+import {connectedUsers} from '#stats/ConnectedUsers'
 
 const shareHosts = new Map<string, Socket>()                        // publicKey → socket
 const sessions = new Map<string, {host: Socket; client: Socket}>()  // sessionId → session
@@ -20,6 +21,7 @@ export const attachShareNamespace = (io: Server): void => {
   })
 
   share.on('connection', (socket) => {
+    connectedUsers.track(socket)
 
     socket.on('share-register', ({publicKey}: {publicKey: string}) => {
       if (shareHosts.has(publicKey)) {
@@ -90,3 +92,5 @@ export const attachShareNamespace = (io: Server): void => {
     })
   })
 }
+
+export const shareStats = () => ({shareHosts: shareHosts.size, shareSessions: sessions.size})
