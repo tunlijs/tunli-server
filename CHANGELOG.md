@@ -7,6 +7,9 @@
 - The daemon logs a one-line stats summary every 5 minutes.
 - Server processes are now spawned with an IPC channel; the daemon queries their stats over it (1s timeout per process, a process that doesn't answer is shown as "no data").
 
+### Fixed
+- Auth/invite tokens issued within the same second were identical (the JWT only contained `iat`), so concurrent registrations shared one identity — including subdomain ownership. Tokens now carry a random `jti`.
+
 ### Notes
 - Counters are in-memory and reset when the respective process restarts.
 - `stats` needs a daemon from 0.5.0 — run `tunli-server restart` after updating.

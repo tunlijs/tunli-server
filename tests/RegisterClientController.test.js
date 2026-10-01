@@ -38,8 +38,8 @@ test('registerClientController stores each token independently', async () => {
   const handler = registerClientController(s)
   const res1 = mockRes()
   const res2 = mockRes()
+  // back-to-back, i.e. within the same second (iat has second resolution)
   await handler({}, res1, () => {})
-  await new Promise(r => setTimeout(r, 1100)) // iat is in seconds
   await handler({}, res2, () => {})
   assert.notEqual(res1.body.authToken, res2.body.authToken)
   assert.equal(await s.get(`token:${sha256(res1.body.authToken)}`), true)
